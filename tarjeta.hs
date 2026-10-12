@@ -8,8 +8,8 @@ duplica d
 sumaLuhn :: [Int] -> Bool -> Int
 sumaLuhn [] _ = 0
 sumaLuhn (x:xs) toca
-  | toca      = duplica x + sumaLuhn xs False
-  | otherwise = x + sumaLuhn xs True
+  | duplicar == True  = duplica x + sumaLuhn xs False
+  | duplicar == False = x + sumaLuhn xs True
 
 esValida :: [Int] -> Bool
 esValida digitos = mod total 10 == 0
