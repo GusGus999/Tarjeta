@@ -7,7 +7,7 @@ duplica d
 
 sumaLuhn :: [Int] -> Bool -> Int
 sumaLuhn [] _ = 0
-sumaLuhn (x:xs) toca
+sumaLuhn (x:xs) duplicar
   | duplicar == True  = duplica x + sumaLuhn xs False
   | duplicar == False = x + sumaLuhn xs True
 
