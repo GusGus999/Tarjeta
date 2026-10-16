@@ -7,7 +7,7 @@
 1. Muestra un mensaje pidiendo el número de tarjeta.
 2. Lee lo que el usuario escribe. Se recibe como **texto**, no como número.
 3. Quita los espacios del texto, para aceptar entradas como `4539 5787 6362 8`.
-4. Comprueba que el texto contenga **solo dígitos** y que tenga entre **13 y 19 caracteres**, que es el rango de longitudes de las tarjetas reales.
+4. Comprueba que el texto contenga **solo dígitos** y que tenga exactamente **16 caracteres**, que es la longitud estándar de las tarjetas más comunes (Visa, Mastercard, etc.).
 5. Convierte cada caracter en un número entero y arma una lista de dígitos.
 6. Aplica el **algoritmo de Luhn** sobre esa lista.
 7. Imprime `Tarjeta valida` o `Tarjeta no valida`.
@@ -16,8 +16,8 @@
 
 - Está escrito en Haskell, un lenguaje funcional.
 - La parte principal del algoritmo se resuelve con **recursividad**, **ajuste de patrones** y **guardas**.
-- Acepta espacios entre grupos de dígitos.
-- Rechaza entradas con letras, símbolos o con una longitud fuera de rango.
+- Acepta espacios entre grupos de dígitos (por ejemplo `4539 5787 6362 8`).
+- Rechaza entradas con letras, símbolos o que no tengan exactamente 16 dígitos.
 
 
 ## Algoritmo de Luhn
@@ -120,7 +120,7 @@ El programa tiene cuatro funciones: `duplica`, `sumaLuhn`, `esValida` y `main`.
 | `duplica` | `Int -> Int` | Duplica un dígito y resta 9 si pasa de 9. |
 | `sumaLuhn` | `[Int] -> Bool -> Int` | Recorre los dígitos de forma recursiva y devuelve la suma de Luhn. |
 | `esValida` | `[Int] -> Bool` | Voltea la lista, calcula la suma y revisa si es múltiplo de 10. |
-| `main` | `IO ()` | Lee la entrada, la limpia, la revisa y muestra el resultado. |
+| `main` | `IO ()` | Lee la entrada, quita espacios, verifica que sean exactamente 16 dígitos y muestra el resultado. |
 
 ### `import Data.Char (isDigit, digitToInt)`
 
@@ -270,8 +270,8 @@ main = do
   putStrLn "Ingresa el numero de tarjeta:"
   entrada <- getLine
   let numero = filter (/= ' ') entrada
-  if not (all isDigit numero) || length numero < 13 || length numero > 19
-    then putStrLn "Entrada no valida: usa solo digitos (13 a 19)"
+  if not (all isDigit numero) || length numero /= 16
+    then putStrLn "Entrada no valida: usa solo 16 digitos"
     else if esValida (map digitToInt numero)
       then putStrLn "Tarjeta valida"
       else putStrLn "Tarjeta no valida"
@@ -284,8 +284,8 @@ Es el punto de entrada del programa. El bloque `do` ejecuta los pasos en orden.
 | `putStrLn "Ingresa el numero de tarjeta:"` | Muestra el mensaje en pantalla. |
 | `entrada <- getLine` | Espera a que el usuario escriba y presione Enter. Guarda lo escrito como texto en `entrada`. |
 | `let numero = filter (/= ' ') entrada` | Crea `numero` quitando los espacios de `entrada`. `filter` conserva solo los caracteres distintos de espacio. |
-| `if not (all isDigit numero) \|\| length numero < 13 \|\| length numero > 19` | Revisa tres condiciones unidas por `\|\|` ("o"): que haya algún caracter que no sea dígito, que tenga menos de 13 caracteres o que tenga más de 19. Si alguna es cierta, la entrada es incorrecta. |
-| `then putStrLn "Entrada no valida..."` | Si la entrada es incorrecta, muestra el aviso. |
+| `if not (all isDigit numero) \|\| length numero /= 16` | Revisa dos condiciones unidas por `\|\|` ("o"): que haya algún caracter que no sea dígito, o que la longitud no sea exactamente 16. Si alguna es cierta, la entrada es incorrecta. |
+| `then putStrLn "Entrada no valida: usa solo 16 digitos"` | Si la entrada es incorrecta, muestra el aviso. |
 | `else if esValida (map digitToInt numero)` | Si la entrada es correcta, convierte cada caracter en número con `map digitToInt` y llama a `esValida`. |
 | `then putStrLn "Tarjeta valida"` | Si `esValida` devuelve `True`. |
 | `else putStrLn "Tarjeta no valida"` | Si `esValida` devuelve `False`. |
@@ -295,8 +295,9 @@ Es el punto de entrada del programa. El bloque `do` ejecuta los pasos en orden.
 ```
 entrada = "4539 5787 6362 8"
 numero  = "4539578763628"
-map digitToInt numero = [4,5,3,9,5,7,8,7,6,3,6,2,8]
 ```
+
+> **Nota:** `"4539578763628"` tiene 13 caracteres, por lo que **no pasaría** la validación `length numero /= 16`. Para probar este ejemplo, el número debe tener exactamente 16 dígitos (sin espacios), por ejemplo `4111111111111111`.
 
 ---
 
@@ -308,7 +309,7 @@ map digitToInt numero = [4,5,3,9,5,7,8,7,6,3,6,2,8]
 main
  ├─ getLine ................. lee la entrada
  ├─ filter .................. quita los espacios
- ├─ (revisa dígitos y longitud)
+ ├─ (revisa dígitos y que sean exactamente 16)
  ├─ map digitToInt .......... convierte texto en números
  └─ esValida
       ├─ reverse ............ voltea la lista
@@ -318,27 +319,34 @@ main
  └─ putStrLn ................ muestra el resultado
 ```
 
-**Cómo se transforma el dato, con la entrada `4539 5787 6362 8`:**
+**Cómo se transforma el dato, con la entrada `4111111111111111`:**
+
+> Este es el ejemplo del programa real. Tiene exactamente 16 dígitos y pasa la validación.
 
 ```
-"4539 5787 6362 8"                  lo que escribe el usuario
+"4111111111111111"                  lo que escribe el usuario
    ↓ filter (/= ' ')
-"4539578763628"                     sin espacios
+"4111111111111111"                  sin espacios (sin cambio, no había espacios)
+   ↓ length /= 16 → False, all isDigit → True
+   validación OK
    ↓ map digitToInt
-[4,5,3,9,5,7,8,7,6,3,6,2,8]         lista de números
+[4,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]  lista de números
    ↓ reverse
-[8,2,6,3,6,7,8,7,5,9,3,5,4]         lista volteada
-   ↓ sumaLuhn (14 llamadas)
-[8,4,6,6,6,5,8,5,5,9,3,1,4]         lo que aporta cada dígito
-   ↓ suma al regresar la recursión
-70                                  total
-   ↓ mod 70 10 == 0
+[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,4]  lista volteada
+   ↓ sumaLuhn
+suma de Luhn = 20
+   ↓ mod 20 10 == 0
 True
    ↓
 "Tarjeta valida"                    salida
 ```
 
-**Las 14 llamadas de `sumaLuhn` con este ejemplo:**
+**Nota sobre el ejemplo de 13 dígitos del algoritmo de Luhn:**
+
+A lo largo del documento se usa `4539 5787 6362 8` (13 dígitos) para ilustrar el algoritmo de Luhn paso a paso. Ese número **es matemáticamente válido** según Luhn, pero con el código actual **sería rechazado** en la validación `length numero /= 16` antes de llegar al algoritmo.
+
+**Las llamadas de `sumaLuhn` con el ejemplo del algoritmo (`4539578763628`, 13 dígitos):**
+
 
 | Llamada | Dígito | `duplicar` | Acción | Aporta |
 |---|---|---|---|---|
@@ -396,19 +404,32 @@ ghc tarjeta.hs
 
 ## Ejemplos de uso
 
-| Entrada | Salida |
-|---|---|
-| `4539 5787 6362 8` | `Tarjeta valida` |
-| `4111111111111111` | `Tarjeta valida` |
-| `4111111111111112` | `Tarjeta no valida` |
-| `abc` | `Entrada no valida: usa solo digitos (13 a 19)` |
-| `123` | `Entrada no valida: usa solo digitos (13 a 19)` |
+| Entrada | Dígitos (sin espacios) | Salida |
+|---|---|---|
+| `4111111111111111` | 16 | `Tarjeta valida` |
+| `4111111111111112` | 16 | `Tarjeta no valida` |
+| `5500005555555559` | 16 | `Tarjeta valida` |
+| `4539 5787 6362 8` | 13 | `Entrada no valida: usa solo 16 digitos` |
+| `abc` | — | `Entrada no valida: usa solo 16 digitos` |
+| `123` | 3 | `Entrada no valida: usa solo 16 digitos` |
 
 Ejemplo de ejecución:
 
 ```
 Ingresa el numero de tarjeta:
-4539 5787 6362 8
+4111111111111111
 Tarjeta valida
+```
+
+```
+Ingresa el numero de tarjeta:
+4111111111111112
+Tarjeta no valida
+```
+
+```
+Ingresa el numero de tarjeta:
+abc
+Entrada no valida: usa solo 16 digitos
 ```
 
