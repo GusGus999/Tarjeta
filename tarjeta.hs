@@ -21,8 +21,8 @@ main = do
   entrada <- getLine
   
   let numero = filter (/= ' ') entrada
-  if not (all isDigit numero) || length numero < 13 || length numero > 19
-    then putStrLn "Entrada no valida: usa solo digitos (13 a 19)"
+  if not (all isDigit numero) || length numero /= 16
+    then putStrLn "Entrada no valida: usa solo 16 digitos"
     else if esValida (map digitToInt numero)
       then putStrLn "Tarjeta valida"
       else putStrLn "Tarjeta no valida"
