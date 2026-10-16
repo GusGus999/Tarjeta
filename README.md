@@ -301,74 +301,269 @@ numero  = "4539578763628"
 
 ---
 
-## Flujo completo del programa
+## Corrida detallada con una tarjeta válida
 
-**Quién llama a quién:**
+Esta sección muestra exactamente cómo evalúa el programa la entrada `4111111111111111`, paso a paso, función por función.
 
-```
-main
- ├─ getLine ................. lee la entrada
- ├─ filter .................. quita los espacios
- ├─ (revisa dígitos y que sean exactamente 16)
- ├─ map digitToInt .......... convierte texto en números
- └─ esValida
-      ├─ reverse ............ voltea la lista
-      ├─ sumaLuhn ........... suma recursiva
-      │    └─ duplica ....... cuando toca duplicar un dígito
-      └─ mod total 10 == 0 .. decide True o False
- └─ putStrLn ................ muestra el resultado
-```
+---
 
-**Cómo se transforma el dato, con la entrada `4111111111111111`:**
-
-> Este es el ejemplo del programa real. Tiene exactamente 16 dígitos y pasa la validación.
+### Paso 1 — `main` muestra el mensaje y lee la entrada
 
 ```
-"4111111111111111"                  lo que escribe el usuario
-   ↓ filter (/= ' ')
-"4111111111111111"                  sin espacios (sin cambio, no había espacios)
-   ↓ length /= 16 → False, all isDigit → True
-   validación OK
-   ↓ map digitToInt
-[4,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]  lista de números
-   ↓ reverse
-[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,4]  lista volteada
-   ↓ sumaLuhn
-suma de Luhn = 20
-   ↓ mod 20 10 == 0
-True
-   ↓
-"Tarjeta valida"                    salida
+putStrLn "Ingresa el numero de tarjeta:"
+→ imprime en pantalla: Ingresa el numero de tarjeta:
+
+entrada <- getLine
+→ el usuario escribe: 4111111111111111
+→ entrada = "4111111111111111"
 ```
 
-**Nota sobre el ejemplo de 13 dígitos del algoritmo de Luhn:**
+---
 
-A lo largo del documento se usa `4539 5787 6362 8` (13 dígitos) para ilustrar el algoritmo de Luhn paso a paso. Ese número **es matemáticamente válido** según Luhn, pero con el código actual **sería rechazado** en la validación `length numero /= 16` antes de llegar al algoritmo.
+### Paso 2 — `filter` quita los espacios
 
-**Las llamadas de `sumaLuhn` con el ejemplo del algoritmo (`4539578763628`, 13 dígitos):**
+```haskell
+let numero = filter (/= ' ') entrada
+```
 
+```
+filter (/= ' ') "4111111111111111"
+→ no hay espacios, la cadena no cambia
+→ numero = "4111111111111111"
+```
 
-| Llamada | Dígito | `duplicar` | Acción | Aporta |
+---
+
+### Paso 3 — Validación de la entrada
+
+```haskell
+if not (all isDigit numero) || length numero /= 16
+```
+
+Se evalúan las dos condiciones:
+
+| Condición | Evaluación | Resultado |
+|---|---|---|
+| `all isDigit "4111111111111111"` | todos son dígitos | `True` |
+| `not True` | niega el resultado | `False` |
+| `length "4111111111111111" /= 16` | tiene 16, 16 ≠ 16 es falso | `False` |
+| `False \|\| False` | ninguna condición se cumple | `False` |
+
+El `if` da `False` → **la entrada es válida**, se pasa al `else`.
+
+---
+
+### Paso 4 — `map digitToInt` convierte el texto en lista de números
+
+```haskell
+map digitToInt "4111111111111111"
+```
+
+Aplica `digitToInt` a cada caracter:
+
+```
+'4' → 4
+'1' → 1
+'1' → 1
+'1' → 1
+'1' → 1
+'1' → 1
+'1' → 1
+'1' → 1
+'1' → 1
+'1' → 1
+'1' → 1
+'1' → 1
+'1' → 1
+'1' → 1
+'1' → 1
+'1' → 1
+```
+
+```
+resultado: [4,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+```
+
+---
+
+### Paso 5 — `esValida` recibe la lista y llama a `reverse`
+
+```haskell
+esValida [4,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+```
+
+Dentro de `esValida`:
+
+```haskell
+where total = sumaLuhn (reverse digitos) False
+```
+
+```
+reverse [4,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+→ [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,4]
+```
+
+El `4` queda al final porque era el primer dígito escrito. El primer dígito de la lista volteada (el `1` de la derecha de la tarjeta) se deja igual (`duplicar = False`).
+
+---
+
+### Paso 6 — `sumaLuhn` baja por recursión
+
+Se llama: `sumaLuhn [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,4] False`
+
+Cada llamada separa el primer elemento con el patrón `(x:xs)` y decide si duplicar o dejar igual:
+
+**Bajada (se acumulan sumas pendientes, aún no se calculan):**
+
+| Llamada | `x` | `xs` (resto) | `duplicar` | Guarda activa | Expresión pendiente |
+|---|---|---|---|---|---|
+| 1 | `1` | `[1,1,1,1,1,1,1,1,1,1,1,1,1,1,4]` | `False` | `duplicar == False` | `1 + sumaLuhn [1,1,1,1,1,1,1,1,1,1,1,1,1,1,4] True` |
+| 2 | `1` | `[1,1,1,1,1,1,1,1,1,1,1,1,1,4]` | `True` | `duplicar == True` | `duplica 1 + sumaLuhn [1,1,1,1,1,1,1,1,1,1,1,1,1,4] False` |
+| 3 | `1` | `[1,1,1,1,1,1,1,1,1,1,1,1,4]` | `False` | `duplicar == False` | `1 + sumaLuhn [1,1,1,1,1,1,1,1,1,1,1,1,4] True` |
+| 4 | `1` | `[1,1,1,1,1,1,1,1,1,1,1,4]` | `True` | `duplicar == True` | `duplica 1 + sumaLuhn [1,1,1,1,1,1,1,1,1,1,1,4] False` |
+| 5 | `1` | `[1,1,1,1,1,1,1,1,1,1,4]` | `False` | `duplicar == False` | `1 + sumaLuhn [1,1,1,1,1,1,1,1,1,1,4] True` |
+| 6 | `1` | `[1,1,1,1,1,1,1,1,1,4]` | `True` | `duplicar == True` | `duplica 1 + sumaLuhn [1,1,1,1,1,1,1,1,1,4] False` |
+| 7 | `1` | `[1,1,1,1,1,1,1,1,4]` | `False` | `duplicar == False` | `1 + sumaLuhn [1,1,1,1,1,1,1,1,4] True` |
+| 8 | `1` | `[1,1,1,1,1,1,1,4]` | `True` | `duplicar == True` | `duplica 1 + sumaLuhn [1,1,1,1,1,1,1,4] False` |
+| 9 | `1` | `[1,1,1,1,1,1,4]` | `False` | `duplicar == False` | `1 + sumaLuhn [1,1,1,1,1,1,4] True` |
+| 10 | `1` | `[1,1,1,1,1,4]` | `True` | `duplicar == True` | `duplica 1 + sumaLuhn [1,1,1,1,1,4] False` |
+| 11 | `1` | `[1,1,1,1,4]` | `False` | `duplicar == False` | `1 + sumaLuhn [1,1,1,1,4] True` |
+| 12 | `1` | `[1,1,1,4]` | `True` | `duplicar == True` | `duplica 1 + sumaLuhn [1,1,1,4] False` |
+| 13 | `1` | `[1,1,4]` | `False` | `duplicar == False` | `1 + sumaLuhn [1,1,4] True` |
+| 14 | `1` | `[1,4]` | `True` | `duplicar == True` | `duplica 1 + sumaLuhn [1,4] False` |
+| 15 | `1` | `[4]` | `False` | `duplicar == False` | `1 + sumaLuhn [4] True` |
+| 16 | `4` | `[]` | `True` | `duplicar == True` | `duplica 4 + sumaLuhn [] False` |
+| 17 | `[]` | — | `False` | patrón `[]` | `0` ← **caso base, termina la bajada** |
+
+---
+
+### Paso 7 — `duplica` se evalúa en cada llamada que toca duplicar
+
+Las llamadas con `duplicar == True` son: 2, 4, 6, 8, 10, 12, 14, 16.
+
+| Llamada | Dígito | `duplica d` | `d * 2 > 9`? | Resultado |
 |---|---|---|---|---|
-| 1 | 8 | `False` | igual | 8 |
-| 2 | 2 | `True` | `duplica 2` | 4 |
-| 3 | 6 | `False` | igual | 6 |
-| 4 | 3 | `True` | `duplica 3` | 6 |
-| 5 | 6 | `False` | igual | 6 |
-| 6 | 7 | `True` | `duplica 7` (14 − 9) | 5 |
-| 7 | 8 | `False` | igual | 8 |
-| 8 | 7 | `True` | `duplica 7` (14 − 9) | 5 |
-| 9 | 5 | `False` | igual | 5 |
-| 10 | 9 | `True` | `duplica 9` (18 − 9) | 9 |
-| 11 | 3 | `False` | igual | 3 |
-| 12 | 5 | `True` | `duplica 5` (10 − 9) | 1 |
-| 13 | 4 | `False` | igual | 4 |
-| 14 | (lista vacía) | | caso base | 0 |
+| 2 | `1` | `1 * 2 = 2` | No | `2` |
+| 4 | `1` | `1 * 2 = 2` | No | `2` |
+| 6 | `1` | `1 * 2 = 2` | No | `2` |
+| 8 | `1` | `1 * 2 = 2` | No | `2` |
+| 10 | `1` | `1 * 2 = 2` | No | `2` |
+| 12 | `1` | `1 * 2 = 2` | No | `2` |
+| 14 | `1` | `1 * 2 = 2` | No | `2` |
+| 16 | `4` | `4 * 2 = 8` | No | `8` |
 
-Al regresar, las sumas pendientes se completan:
+---
+
+### Paso 8 — `sumaLuhn` sube y completa las sumas
+
+Al llegar al caso base, Haskell regresa completando cada suma pendiente de abajo hacia arriba:
 
 ```
-8 + (4 + (6 + (6 + (6 + (5 + (8 + (5 + (5 + (9 + (3 + (1 + (4 + 0))))))))))))  =  70
+Llamada 17 devuelve  0
+Llamada 16 devuelve  8 + 0  =  8       (duplica 4 = 8)
+Llamada 15 devuelve  1 + 8  =  9       (x = 1, igual)
+Llamada 14 devuelve  2 + 9  = 11       (duplica 1 = 2)
+Llamada 13 devuelve  1 + 11 = 12       (x = 1, igual)
+Llamada 12 devuelve  2 + 12 = 14       (duplica 1 = 2)
+Llamada 11 devuelve  1 + 14 = 15       (x = 1, igual)
+Llamada 10 devuelve  2 + 15 = 17       (duplica 1 = 2)
+Llamada  9 devuelve  1 + 17 = 18       (x = 1, igual)
+Llamada  8 devuelve  2 + 18 = 20       (duplica 1 = 2)  ← nótese: aquí el 5 del primero
+Llamada  7 devuelve  1 + 20 = 21       (x = 1, igual)
+Llamada  6 devuelve  2 + 21 = 23       (duplica 1 = 2)
+Llamada  5 devuelve  1 + 23 = 24       (x = 1, igual)
+Llamada  4 devuelve  2 + 24 = 26       (duplica 1 = 2)
+Llamada  3 devuelve  1 + 26 = 27       (x = 1, igual)
+Llamada  2 devuelve  2 + 27 = 29       (duplica 1 = 2)
+Llamada  1 devuelve  1 + 29 = 30       (x = 1, igual)
+```
+
+**Expresión completa construida:**
+```
+1 + (2 + (1 + (2 + (1 + (2 + (1 + (2 + (1 + (2 + (1 + (2 + (1 + (2 + (1 + (8 + 0))))))))))))))))
+= 30
+```
+
+> **Nota:** `sumaLuhn` devuelve `30`, no `20`. El valor `20` que aparecía antes era un error; la suma real de Luhn para `4111111111111111` es **30**.
+
+---
+
+### Paso 9 — `esValida` comprueba si es múltiplo de 10
+
+```haskell
+mod total 10 == 0
+```
+
+```
+total = 30
+mod 30 10 = 0
+0 == 0  →  True
+```
+
+`esValida` devuelve `True`.
+
+---
+
+### Paso 10 — `main` imprime el resultado
+
+```haskell
+else if esValida (map digitToInt numero)
+  then putStrLn "Tarjeta valida"
+```
+
+`esValida` devolvió `True` → se ejecuta el `then`:
+
+```
+Tarjeta valida
+```
+
+---
+
+### Resumen visual de la corrida completa
+
+```
+Entrada del usuario
+  "4111111111111111"
+       │
+       ▼ filter (/= ' ')
+  "4111111111111111"   ← sin cambio
+       │
+       ▼ validación: all isDigit → True, length == 16 → True
+       OK
+       │
+       ▼ map digitToInt
+  [4,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+       │
+       ▼ reverse (dentro de esValida)
+  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,4]
+       │
+       ▼ sumaLuhn ... False
+         Pos  1: 1 igual     →  1
+         Pos  2: 1 duplica   →  2
+         Pos  3: 1 igual     →  1
+         Pos  4: 1 duplica   →  2
+         Pos  5: 1 igual     →  1
+         Pos  6: 1 duplica   →  2
+         Pos  7: 1 igual     →  1
+         Pos  8: 1 duplica   →  2
+         Pos  9: 1 igual     →  1
+         Pos 10: 1 duplica   →  2
+         Pos 11: 1 igual     →  1
+         Pos 12: 1 duplica   →  2
+         Pos 13: 1 igual     →  1
+         Pos 14: 1 duplica   →  2
+         Pos 15: 1 igual     →  1
+         Pos 16: 4 duplica   →  8
+         caso base           →  0
+       │
+       ▼ suma total al regresar
+       30
+       │
+       ▼ mod 30 10 == 0
+       True
+       │
+       ▼
+  "Tarjeta valida"
 ```
 
 ---
